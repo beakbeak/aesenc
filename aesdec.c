@@ -200,9 +200,9 @@ error8:
 error7:
   free (encrypted_key);
 error6:
-  fclose (binary_stdin);
+  /*fclose (binary_stdin);*/
 error5:
-  fclose (binary_stdout);
+  /*fclose (binary_stdout);*/
 error4:
   free (outbuf);
 error3:

@@ -165,9 +165,9 @@ main (int    argc,
 error8:
   EVP_CIPHER_CTX_cleanup (&ctx);
 error7:
-  fclose (binary_stdin);
+  /*fclose (binary_stdin);*/
 error6:
-  fclose (binary_stdout);
+  /*fclose (binary_stdout);*/
 error5:
   free (outbuf);
 error4:
