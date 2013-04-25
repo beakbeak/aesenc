@@ -160,6 +160,7 @@ main (int    argc,
       break;
   }
 
+  fflush (binary_stdout);
   return_code = 0;
 
 error8:
