@@ -71,12 +71,14 @@ main (int    argc,
     return 1;
   }
 
+  OpenSSL_add_all_algorithms ();
+
   {
     FILE* keyfile = fopen (argv[1], "r");
     if (! keyfile)
     {
       perror ("error: failed to open key file: ");
-      return 1;
+      goto error1;
     }
 
     key = PEM_read_PrivateKey (keyfile, NULL, NULL, NULL);
@@ -85,7 +87,7 @@ main (int    argc,
     if (! key)
     {
       printErrors ();
-      return 1;
+      goto error1;
     }
   }
 
@@ -94,86 +96,86 @@ main (int    argc,
   if (! iv)
   {
     perror ("error: malloc: ");
-    goto error1;
+    goto error2;
   }
 
   inbuf = malloc (INBUF_SIZE);
   if (! inbuf)
   {
     perror ("error: malloc: ");
-    goto error2;
+    goto error3;
   }
 
   outbuf = malloc (INBUF_SIZE + EVP_CIPHER_block_size (EVP_aes_256_cbc ()));
   if (! outbuf)
   {
     perror ("error: malloc: ");
-    goto error3;
+    goto error4;
   }
 
   binary_stdout = fdopen (STDOUT_FILENO, "wb");
   if (! binary_stdout)
   {
     perror ("error: failed to reopen stdout as binary: ");
-    goto error4;
+    goto error5;
   }
 
   binary_stdin = fdopen (STDIN_FILENO, "rb");
   if (! binary_stdin)
   {
     perror ("error: failed to reopen stdin as binary: ");
-    goto error5;
+    goto error6;
   }
 
   if (fread (&byte, 1, 1, binary_stdin) != 1)
   {
     perror ("error: fread: ");
-    goto error5;
+    goto error6;
   }
   if (byte != 0)
   {
     fprintf (stderr, "%s", "error: invalid file version");
-    goto error5;
+    goto error6;
   }
 
   if (fread (iv, 1, iv_length, binary_stdin) != iv_length)
   {
     perror ("error: fread: ");
-    goto error5;
+    goto error6;
   }
 
   if (fread (&byte, 1, 1, binary_stdin) != 1)
   {
     perror ("error: fread: ");
-    goto error5;
+    goto error6;
   }
   encrypted_key_length = byte;
 
   if (fread (&byte, 1, 1, binary_stdin) != 1)
   {
     perror ("error: fread: ");
-    goto error5;
+    goto error6;
   }
   encrypted_key_length |= (((unsigned) byte) << 8);
 
   if (encrypted_key_length > MAX_ENCRYPTED_KEY_LENGTH)
   {
     fprintf (stderr, "%s", "error: invalid key length");
-    goto error5;
+    goto error6;
   }
 
   encrypted_key = malloc (encrypted_key_length);
   if (! encrypted_key)
   {
     perror ("error: malloc: ");
-    goto error6;
+    goto error7;
   }
 
   if (fread (encrypted_key, 1, encrypted_key_length, binary_stdin)
       != encrypted_key_length)
   {
     perror ("error: fread: ");
-    goto error7;
+    goto error8;
   }
 
   if (EVP_OpenInit (
@@ -182,7 +184,7 @@ main (int    argc,
       == 0)
   {
     printErrors ();
-    goto error7;
+    goto error8;
   }
 
   for (;;)
@@ -196,13 +198,13 @@ main (int    argc,
       if (EVP_OpenFinal (&ctx, outbuf, &bytes_out) == 0)
       {
         printErrors ();
-        goto error8;
+        goto error9;
       }
     }
     else if (EVP_OpenUpdate (&ctx, outbuf, &bytes_out, inbuf, bytes_in) == 0)
     {
       printErrors ();
-      goto error8;
+      goto error9;
     }
 
     if (bytes_out > 0)
@@ -214,21 +216,23 @@ main (int    argc,
   fflush (binary_stdout);
   return_code = 0;
 
-error8:
+error9:
   EVP_CIPHER_CTX_cleanup (&ctx);
-error7:
+error8:
   free (encrypted_key);
-error6:
+error7:
   /*fclose (binary_stdin);*/
-error5:
+error6:
   /*fclose (binary_stdout);*/
-error4:
+error5:
   free (outbuf);
-error3:
+error4:
   free (inbuf);
-error2:
+error3:
   free (iv);
-error1:
+error2:
   EVP_PKEY_free (key);
+error1:
+  EVP_cleanup ();
   return return_code;
 }
