@@ -26,8 +26,26 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <openssl/evp.h>
 #include <openssl/pem.h>
+#include <openssl/err.h>
 
 #define INBUF_SIZE 4096
+
+static void
+printErrors ()
+{
+  unsigned long code;
+
+  if (! ERR_peek_error ())
+    return;
+
+  ERR_load_crypto_strings ();
+
+  while ((code = ERR_get_error ()))
+    fprintf (stderr, "error: %s: %s: %s\n", ERR_lib_error_string (code),
+             ERR_func_error_string (code), ERR_reason_error_string (code));
+
+  ERR_free_strings ();
+}
 
 int
 main (int    argc,
@@ -65,7 +83,7 @@ main (int    argc,
 
     if (! key)
     {
-      fprintf (stderr, "%s", "error: failed to process key file\n");
+      printErrors ();
       return 1;
     }
   }
@@ -118,7 +136,7 @@ main (int    argc,
           iv, &key, 1)
       == 0)
   {
-    fprintf (stderr, "%s", "error: EVP_SealInit failed");
+    printErrors ();
     goto error7;
   }
 
@@ -144,13 +162,13 @@ main (int    argc,
     {
       if (EVP_SealFinal (&ctx, outbuf, &bytes_out) == 0)
       {
-        fprintf (stderr, "%s", "error: EVP_SealFinal failed");
+        printErrors ();
         goto error8;
       }
     }
     else if (EVP_SealUpdate (&ctx, outbuf, &bytes_out, inbuf, bytes_in) == 0)
     {
-      fprintf (stderr, "%s", "error: EVP_SealUpdate failed");
+      printErrors ();
       goto error8;
     }
 
