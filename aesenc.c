@@ -51,18 +51,18 @@ int
 main (int    argc,
       char** argv)
 {
-  int            return_code = 1;
-  EVP_CIPHER_CTX ctx;
-  EVP_PKEY*      key;
-  unsigned char* encrypted_key;
-  int            encrypted_key_length = 0;
-  unsigned char* iv;
-  int            iv_length = 0;
-  unsigned char  byte = 0;
-  unsigned char* inbuf;
-  unsigned char* outbuf;
-  FILE*          binary_stdout;
-  FILE*          binary_stdin;
+  int             return_code = 1;
+  EVP_CIPHER_CTX* ctx;
+  EVP_PKEY*       key;
+  unsigned char*  encrypted_key;
+  int             encrypted_key_length = 0;
+  unsigned char*  iv;
+  int             iv_length = 0;
+  unsigned char   byte = 0;
+  unsigned char*  inbuf;
+  unsigned char*  outbuf;
+  FILE*           binary_stdout;
+  FILE*           binary_stdin;
 
   if (argc < 2)
   {
@@ -131,13 +131,20 @@ main (int    argc,
     goto error6;
   }
 
+  ctx = EVP_CIPHER_CTX_new();
+  if (! ctx)
+  {
+    printErrors ();
+    goto error7;
+  }
+
   if (EVP_SealInit (
-          &ctx, EVP_aes_256_cbc (), &encrypted_key, &encrypted_key_length,
+          ctx, EVP_aes_256_cbc (), &encrypted_key, &encrypted_key_length,
           iv, &key, 1)
       == 0)
   {
     printErrors ();
-    goto error7;
+    goto error8;
   }
 
   byte = 0;
@@ -160,13 +167,13 @@ main (int    argc,
     bytes_in = fread (inbuf, 1, INBUF_SIZE, binary_stdin);
     if (bytes_in == 0)
     {
-      if (EVP_SealFinal (&ctx, outbuf, &bytes_out) == 0)
+      if (EVP_SealFinal (ctx, outbuf, &bytes_out) == 0)
       {
         printErrors ();
         goto error8;
       }
     }
-    else if (EVP_SealUpdate (&ctx, outbuf, &bytes_out, inbuf, bytes_in) == 0)
+    else if (EVP_SealUpdate (ctx, outbuf, &bytes_out, inbuf, bytes_in) == 0)
     {
       printErrors ();
       goto error8;
@@ -182,7 +189,7 @@ main (int    argc,
   return_code = 0;
 
 error8:
-  EVP_CIPHER_CTX_cleanup (&ctx);
+  EVP_CIPHER_CTX_free (ctx);
 error7:
   /*fclose (binary_stdin);*/
 error6:
