@@ -69,7 +69,7 @@ main(
     FILE*           binary_stdin;
 
     if (argc < 2) {
-        fprintf(stderr, "%s", "usage: aesdec <privkey>\n");
+        fprintf(stderr, "%s", "usage: aesdec <private key>\n");
         return 1;
     }
 

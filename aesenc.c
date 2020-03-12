@@ -68,7 +68,7 @@ main(
     FILE*           binary_stdin;
 
     if (argc < 2) {
-        fprintf(stderr, "%s", "usage: aesenc <pubkey>\n");
+        fprintf(stderr, "%s", "usage: aesenc <public key>\n");
         return 1;
     }
 
